@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historical Traffic Reports</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        header {
+            background-color: #1f1f1f;
+            color: #ffffff;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+        
+        header h1 {
+            margin: 0;
+        }
+        
+        header nav a {
+            color: #bb86fc;
+            text-decoration: none;
+            margin-left: 20px;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+        
+        header nav a:hover {
+            color: #03dac6;
+        }
+
+        .container {
+            background-color: #1f1f1f;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        h2 {
+            color: #bb86fc;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .controls label {
+            font-weight: bold;
+        }
+
+        .controls select {
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #2c2c2c;
+            color: #ffffff;
+            border: 1px solid #333;
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 500px;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Historical Traffic Reports ⏳</h1>
+        <nav>
+            <a href="index.html">Dashboard</a>
+            <a href="alerts.html">Emergency Alerts</a>
+            <a href="users.html">User Management</a>
+            <a href="login.html">Logout</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="controls">
+            <label for="date-select">Select Date:</label>
+            <select id="date-select">
+                <option value="day1">September 15, 2025</option>
+                <option value="day2">September 16, 2025</option>
+                <option value="day3">September 17, 2025</option>
+            </select>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="historicalTrafficChart"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // Simulated historical data for different days
+        const historicalData = {
+            day1: {
+                labels: ['8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM'],
+                vehicleData: [250, 310, 400, 350, 420, 380],
+                waitTimeData: [2.5, 3.1, 4.2, 3.8, 4.5, 3.9]
+            },
+            day2: {
+                labels: ['8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM'],
+                vehicleData: [220, 280, 350, 310, 390, 360],
+                waitTimeData: [2.1, 2.8, 3.5, 3.2, 4.0, 3.7]
+            },
+            day3: {
+                labels: ['8 AM', '9 AM', '10 AM', '11 AM', '12 PM', '1 PM'],
+                vehicleData: [280, 340, 450, 400, 480, 420],
+                waitTimeData: [2.8, 3.5, 4.8, 4.3, 5.1, 4.6]
+            }
+        };
+
+        const chartCanvas = document.getElementById('historicalTrafficChart').getContext('2d');
+        let trafficChart = null; // Variable to hold the chart instance
+
+        function createChart(data) {
+            if (trafficChart) {
+                trafficChart.destroy(); // Destroy the old chart instance
+            }
+
+            trafficChart = new Chart(chartCanvas, {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: 'Total Vehicles',
+                            type: 'line',
+                            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                            borderColor: 'rgb(54, 162, 235)',
+                            data: data.vehicleData,
+                            yAxisID: 'y-vehicles',
+                            tension: 0.4
+                        },
+                        {
+                            label: 'Avg. Wait Time (min)',
+                            type: 'bar',
+                            backgroundColor: 'rgba(255, 159, 64, 0.5)',
+                            borderColor: 'rgb(255, 159, 64)',
+                            data: data.waitTimeData,
+                            yAxisID: 'y-wait',
+                            tension: 0.4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        'y-vehicles': {
+                            beginAtZero: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Vehicles',
+                                color: '#e0e0e0'
+                            },
+                            ticks: {
+                                color: '#b0b0b0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        },
+                        'y-wait': {
+                            beginAtZero: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Avg. Wait Time (min)',
+                                color: '#e0e0e0'
+                            },
+                            ticks: {
+                                color: '#b0b0b0'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time of Day',
+                                color: '#e0e0e0'
+                            },
+                            ticks: {
+                                color: '#b0b0b0'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e0e0e0'
+                            }
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                        }
+                    }
+                }
+            });
+        }
+
+        // Handle date selection change
+        document.getElementById('date-select').addEventListener('change', (event) => {
+            const selectedDate = event.target.value;
+            const dataToShow = historicalData[selectedDate];
+            createChart(dataToShow);
+        });
+
+        // Initial chart creation on page load
+        createChart(historicalData.day3);
+    </script>
+</body>
+</html>

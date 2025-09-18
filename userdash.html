@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jaipur Smart Traffic Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        header {
+            background-color: #1f1f1f;
+            color: #ffffff;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 20px;
+        }
+        .dashboard-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 1200px;
+        }
+        #map-container {
+            width: 100%;
+            height: 600px;
+            background-color: #2c2c2c;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+        .alert-button {
+            padding: 20px 40px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            background-color: #cf6679;
+            color: white;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .alert-button:hover {
+            background-color: #a04e5d;
+            transform: scale(1.05);
+        }
+        .info-card {
+            background-color: #1f1f1f;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            text-align: left;
+        }
+        .info-card h2 {
+            margin-top: 0;
+            color: #bb86fc;
+        }
+        .info-card p, .info-card strong {
+            font-size: 1.2rem;
+            margin: 8px 0;
+        }
+        .info-panel {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+        .info-section {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .road-select {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .road-select select {
+            padding: 8px;
+            border-radius: 4px;
+            background-color: #2c2c2c;
+            color: #ffffff;
+            border: 1px solid #333;
+        }
+        .traffic-status-text {
+            font-weight: bold;
+        }
+        .status-low { color: #03dac6; }
+        .status-moderate { color: #ffcc00; }
+        .status-high { color: #cf6679; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Welcome, User!</h1>
+        <p>This is your personal dashboard.</p>
+    </header>
+    
+    <div class="dashboard-container">
+        <div class="info-panel">
+            <div class="info-card">
+                <h2>Road Traffic Status</h2>
+                <div class="road-select">
+                    <label for="road-dropdown">Select Road:</label>
+                    <select id="road-dropdown">
+                        <option value="Amer-Fort-Road">Amer Fort Road</option>
+                        <option value="Tonk-Road">Tonk Road</option>
+                        <option value="MI-Road">M.I. Road</option>
+                        <option value="Delhi-Jaipur-Highway">Delhi-Jaipur Highway</option>
+                    </select>
+                </div>
+                <p>Status: <span id="road-traffic-status" class="traffic-status-text"></span></p>
+                <p>Congestion Level: <span id="road-traffic-level"></span></p>
+            </div>
+            <div class="info-card">
+                <h2>Current Conditions</h2>
+                <p>Weather: <strong id="weather-status">Sunny</strong></p>
+                <p>Temperature: <strong id="temperature">28°C</strong></p>
+                <p>Air Quality (AQI): <strong id="aqi-status">75 (Good)</strong></p>
+            </div>
+        </div>
+        
+        <div id="map-container">
+            <div id="map"></div>
+        </div>
+        
+        <button id="emergency-alert-button" class="alert-button">Emergency SOS 🆘</button>
+    </div>
+
+    <script>
+        // REPLACE 'YOUR_GOOGLE_MAPS_API_KEY' WITH YOUR ACTUAL, VALID API KEY
+        const API_KEY = 'AIzaSyCHrpogLhy95zJVF1M6-B3R-xq_xs5vovE';
+
+        function loadGoogleMapsAPI() {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=initMap`;
+            script.async = true;
+            document.head.appendChild(script);
+        }
+
+        window.initMap = function() {
+            const mapOptions = {
+                center: { lat: 26.9124, lng: 75.8235 },
+                zoom: 12,
+                styles: [
+                    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
+                    { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
+                    { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                    { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+                    { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+                    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+                    { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
+                    { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
+                    { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
+                    { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+                    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+                    { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
+                ],
+            };
+            const map = new google.maps.Map(document.getElementById('map'), mapOptions);
+            const trafficLayer = new google.maps.TrafficLayer();
+            trafficLayer.setMap(map);
+        };
+        
+        // Simulated data for specific roads
+        const roadData = {
+            'Amer-Fort-Road': { status: 'Normal', level: '2/10', color: 'status-low' },
+            'Tonk-Road': { status: 'High', level: '8/10', color: 'status-high' },
+            'MI-Road': { status: 'Moderate', level: '6/10', color: 'status-moderate' },
+            'Delhi-Jaipur-Highway': { status: 'Low', level: '3/10', color: 'status-low' }
+        };
+
+        // Function to update road traffic status
+        function updateRoadTraffic() {
+            const dropdown = document.getElementById('road-dropdown');
+            const selectedRoad = dropdown.value;
+            const data = roadData[selectedRoad];
+            
+            const statusElement = document.getElementById('road-traffic-status');
+            const levelElement = document.getElementById('road-traffic-level');
+
+            statusElement.textContent = data.status;
+            statusElement.className = `traffic-status-text ${data.color}`;
+            levelElement.textContent = data.level;
+        }
+
+        // Event listener for the dropdown
+        document.getElementById('road-dropdown').addEventListener('change', updateRoadTraffic);
+        
+        // Initial call to set the default road status
+        updateRoadTraffic();
+
+        // Simulate general conditions
+        function updateDashboardInfo() {
+            const trafficStatus = Math.random() > 0.6 ? 'Congested' : 'Normal';
+            const waitTime = (Math.random() * 5 + 1).toFixed(1);
+            
+            const weather = ['Sunny ☀️', 'Partly Cloudy 🌥️', 'Hazy 🌫️', 'Rainy 🌧️'];
+            const randomWeather = weather[Math.floor(Math.random() * weather.length)];
+            const temperature = Math.floor(Math.random() * 10) + 25;
+            const aqi = Math.floor(Math.random() * 200) + 20;
+
+            let aqiRating = 'Good';
+            if (aqi > 50) aqiRating = 'Moderate';
+            if (aqi > 100) aqiRating = 'Unhealthy';
+            if (aqi > 150) aqiRating = 'Very Unhealthy';
+            if (aqi > 200) aqiRating = 'Hazardous';
+
+            document.getElementById('weather-status').textContent = randomWeather;
+            document.getElementById('temperature').textContent = `${temperature}°C`;
+            document.getElementById('aqi-status').textContent = `${aqi} (${aqiRating})`;
+        }
+        
+        setInterval(updateDashboardInfo, 10000);
+        updateDashboardInfo();
+
+        document.getElementById('emergency-alert-button').addEventListener('click', () => {
+            const names = ['Sameer Khan', 'Priya Singh', 'Vikram Singh', 'Anjali Desai', 'Rahul Kumar', 'Pooja Sharma'];
+            const locations = ['Jal Mahal', 'Hawa Mahal', 'Amer Fort', 'Albert Hall Museum', 'City Palace'];
+            const randomName = names[Math.floor(Math.random() * names.length)];
+            const randomLocation = locations[Math.floor(Math.random() * locations.length)];
+            const newAlert = {
+                name: randomName,
+                phone: '9' + Math.floor(100000000 + Math.random() * 900000000),
+                location: randomLocation,
+                time: new Date().toLocaleTimeString(),
+                status: 'pending'
+            };
+
+            let alerts = JSON.parse(localStorage.getItem('emergencyAlerts')) || [];
+            alerts.push(newAlert);
+            localStorage.setItem('emergencyAlerts', JSON.stringify(alerts));
+            
+            alert('SOS Signal Sent to authorities!');
+            window.location.href = 'alerts.html';
+        });
+
+        loadGoogleMapsAPI();
+    </script>
+</body>
+</html>
