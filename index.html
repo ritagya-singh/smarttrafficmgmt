@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Traffic Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #1f1f1f;
+            color: #ffffff;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-left: 20px;
+            padding-right: 20px;
+        }
+        
+        header h1 {
+            margin: 0;
+        }
+        
+        header nav a {
+            color: #bb86fc;
+            text-decoration: none;
+            margin-left: 20px;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+        
+        header nav a:hover {
+            color: #03dac6;
+        }
+
+        .dashboard-container {
+            display: flex;
+            padding: 20px;
+            gap: 20px;
+        }
+
+        #map-container {
+            flex: 3;
+            height: 700px;
+            background-color: #2c2c2c;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .info-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-card {
+            background-color: #1f1f1f;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .info-card h2 {
+            margin-top: 0;
+            color: #bb86fc;
+        }
+
+        .info-card p {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0;
+            color: #03dac6;
+        }
+
+        #emergency-app-button {
+            padding: 15px;
+            font-size: 1.2rem;
+            background-color: #cf6679;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        #emergency-app-button:hover {
+            background-color: #a04e5d;
+        }
+
+        .lane-status-container {
+            background-color: #1f1f1f;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .lane-status-item {
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+        }
+
+        .traffic-light {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+
+        .red { background-color: red; }
+        .yellow { background-color: yellow; }
+        .green { background-color: green; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Jaipur Smart Traffic Dashboard 🚦</h1>
+        <nav>
+            <a href="file:///C:/Users/ritag/smarttrafficmgmt/userdash.html">Dashboard</a>
+            <a href="#">Camera</a>
+            <a href="file:///C:/Users/ritag/smarttrafficmgmt/intersections.html">Intersections</a>
+            <a href="file:///C:/Users/ritag/smarttrafficmgmt/historical%20report.html">Reports</a>
+            <a href="#">Settings</a>
+            <a href="file:///C:/Users/ritag/smarttrafficmgmt/smartlogin.html">Logout</a>
+            <a href="file:///C:/Users/ritag/smarttrafficmgmt/usermgmt.html">User management</a>
+        </nav>
+    </header>
+    <main>
+        <div class="dashboard-container">
+            <div id="map-container">
+                <div id="map"></div>
+            </div>
+            <div class="info-panel">
+                <div class="info-card" id="vehicle-count-card">
+                    <h2>Total Vehicles</h2>
+                    <p id="vehicle-count">0</p>
+                </div>
+                <div class="info-card" id="avg-wait-time-card">
+                    <h2>Avg. Wait Time</h2>
+                    <p id="avg-wait-time">0 min</p>
+                </div>
+                <div class="info-card" id="emergency-card">
+                    <h2>Emergency Vehicles</h2>
+                    <p id="emergency-status">None detected 🚨</p>
+                </div>
+                <div class="info-card" id="traffic-lights-card">
+                    <h2>Traffic Lights</h2>
+                    <div id="traffic-lights-status"></div>
+                </div>
+                <div class="lane-status-container">
+                    <h2>Lane Status</h2>
+                    <div id="lane-status"></div>
+                </div>
+                <div class="info-card">
+                    <h2>Traffic History</h2>
+                    <div style="width: 100%; height: 500px;">
+                        <canvas id="trafficChart"></canvas>
+                    </div>
+                </div>
+                <button id="emergency-app-button">Emergency SOS 🆘</button>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // REPLACE 'YOUR_GOOGLE_MAPS_API_KEY' WITH YOUR ACTUAL, VALID API KEY
+        const API_KEY = 'AIzaSyCHrpogLhy95zJVF1M6-B3R-xq_xs5vovE';
+
+        function loadGoogleMapsAPI() {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&callback=initMap`;
+            script.async = true;
+            document.head.appendChild(script);
+        }
+
+        window.initMap = function() {
+            const mapOptions = {
+                center: { lat: 26.9124, lng: 75.8235 },
+                zoom: 12,
+                styles: [
+                    { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+                    { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+                    { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+                    { featureType: "administrative.locality", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                    { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                    { featureType: "poi.park", elementType: "geometry", stylers: [{ color: "#263c3f" }] },
+                    { featureType: "poi.park", elementType: "labels.text.fill", stylers: [{ color: "#6b9a76" }] },
+                    { featureType: "road", elementType: "geometry", stylers: [{ color: "#38414e" }] },
+                    { featureType: "road", elementType: "geometry.stroke", stylers: [{ color: "#212a37" }] },
+                    { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
+                    { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#746855" }] },
+                    { featureType: "road.highway", elementType: "geometry.stroke", stylers: [{ color: "#1f2835" }] },
+                    { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#f3d19c" }] },
+                    { featureType: "transit", elementType: "geometry", stylers: [{ color: "#2f3948" }] },
+                    { featureType: "transit.station", elementType: "labels.text.fill", stylers: [{ color: "#d59563" }] },
+                    { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
+                    { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#515c6d" }] },
+                    { featureType: "water", elementType: "labels.text.stroke", stylers: [{ color: "#17263c" }] },
+                ],
+            };
+            const map = new google.maps.Map(document.getElementById('map'), mapOptions);
+            const trafficLayer = new google.maps.TrafficLayer();
+            trafficLayer.setMap(map);
+            const trafficLayerControl = document.createElement('div');
+            trafficLayerControl.style.backgroundColor = '#fff';
+            trafficLayerControl.style.border = '2px solid #fff';
+            trafficLayerControl.style.borderRadius = '3px';
+            trafficLayerControl.style.boxShadow = '0 2px 6px rgba(0,0,0,.3)';
+            trafficLayerControl.style.cursor = 'pointer';
+            trafficLayerControl.style.margin = '10px';
+            trafficLayerControl.style.padding = '5px';
+            trafficLayerControl.innerHTML = 'Show Traffic';
+            trafficLayerControl.index = 1;
+            map.controls[google.maps.ControlPosition.TOP_RIGHT].push(trafficLayerControl);
+            trafficLayerControl.addEventListener('click', () => {
+                if (trafficLayer.getMap() === null) {
+                    trafficLayer.setMap(map);
+                    trafficLayerControl.innerHTML = 'Hide Traffic';
+                } else {
+                    trafficLayer.setMap(null);
+                    trafficLayerControl.innerHTML = 'Show Traffic';
+                }
+            });
+        };
+
+        const trafficData = {
+            labels: [],
+            datasets: [
+                {
+                    label: 'Total Vehicles',
+                    type: 'line',
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgb(54, 162, 235)',
+                    data: [],
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Avg. Wait Time (min)',
+                    type: 'bar',
+                    backgroundColor: 'rgba(255, 159, 64, 0.5)',
+                    borderColor: 'rgb(255, 159, 64)',
+                    data: [],
+                    yAxisID: 'y1'
+                }
+            ]
+        };
+
+        const trafficChartConfig = {
+            data: trafficData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#b0b0b0' },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        title: { display: true, text: 'Vehicles', color: '#e0e0e0' }
+                    },
+                    y1: {
+                        beginAtZero: true,
+                        position: 'right',
+                        ticks: { color: '#b0b0b0' },
+                        grid: { drawOnChartArea: false },
+                        title: { display: true, text: 'Avg. Wait Time (min)', color: '#e0e0e0' }
+                    },
+                    x: {
+                        ticks: { color: '#b0b0b0', maxTicksLimit: 5 },
+                        grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                        title: { display: true, text: 'Time', color: '#e0e0e0' }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: '#e0e0e0' } },
+                    tooltip: { mode: 'index', intersect: false }
+                }
+            }
+        };
+
+        const trafficChart = new Chart(
+            document.getElementById('trafficChart'),
+            trafficChartConfig
+        );
+
+        function updateDashboard() {
+            const vehicleCount = Math.floor(Math.random() * 500) + 150;
+            const avgWaitTime = (Math.random() * 5 + 1).toFixed(1);
+            const emergencyDetected = Math.random() < 0.1;
+
+            document.getElementById('vehicle-count').textContent = vehicleCount;
+            document.getElementById('avg-wait-time').textContent = `${avgWaitTime} min`;
+            document.getElementById('emergency-status').textContent = emergencyDetected ? 'Emergency vehicle detected! 🚨' : 'None detected';
+
+            const lanes = ['Lane 1', 'Lane 2', 'Lane 3', 'Lane 4'];
+            const laneStatusDiv = document.getElementById('lane-status');
+            laneStatusDiv.innerHTML = '';
+            lanes.forEach(lane => {
+                const status = Math.random() < 0.5 ? 'Normal' : 'Congested';
+                laneStatusDiv.innerHTML += `
+                    <div class="lane-status-item">
+                        <strong>${lane}:</strong> ${status}
+                    </div>
+                `;
+            });
+
+            const lights = ['Intersection A', 'Intersection B', 'Intersection C'];
+            const lightsStatusDiv = document.getElementById('traffic-lights-status');
+            lightsStatusDiv.innerHTML = '';
+            lights.forEach(light => {
+                const state = ['red', 'yellow', 'green'][Math.floor(Math.random() * 3)];
+                lightsStatusDiv.innerHTML += `
+                    <div class="lane-status-item">
+                        <strong>${light}:</strong> <span class="traffic-light ${state}"></span> ${state.toUpperCase()}
+                    </div>
+                `;
+            });
+
+            const now = new Date();
+            const timeLabel = now.getHours() + ':' + now.getMinutes() + ':' + now.getSeconds();
+            trafficData.labels.push(timeLabel);
+            trafficData.datasets[0].data.push(vehicleCount);
+            trafficData.datasets[1].data.push(avgWaitTime);
+            const maxDataPoints = 10;
+            if (trafficData.labels.length > maxDataPoints) {
+                trafficData.labels.shift();
+                trafficData.datasets[0].data.shift();
+                trafficData.datasets[1].data.shift();
+            }
+
+            trafficChart.update();
+        }
+
+        document.getElementById('emergency-app-button').addEventListener('click', () => {
+            alert('SOS Signal Sent to nearest authorities!');
+        });
+
+        setInterval(updateDashboard, 5000);
+        updateDashboard();
+        loadGoogleMapsAPI();
+    </script>
+</body>
+</html>
